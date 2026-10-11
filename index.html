@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="On fait COA?">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<title>On fait COA?</title>
+<style>
+  :root { --pcr: #2e7df5; --regul: #f28c29; --j1: #21b573; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; background: #000; color: #f2f2f2; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    -webkit-user-select: none; user-select: none; touch-action: manipulation; overscroll-behavior: none;
+  }
+  body {
+    display: flex; flex-direction: column; max-width: 520px; margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 12px);
+    height: 100dvh;
+  }
+  button { font-family: inherit; color: inherit; border: 0; cursor: pointer; }
+
+  .tabs { display: flex; gap: 4px; padding: 4px; background: #1a1a1a; border-radius: 14px; flex: none; }
+  .tab { flex: 1; padding: 12px 0; border-radius: 10px; background: transparent; color: #888; font-size: 17px; font-weight: 600; }
+  .tab.on { background: #333; color: #fff; }
+
+  .night { display: none; margin-top: 10px; text-align: center; font-size: 13px; color: #999; flex: none; }
+  .night.show { display: block; }
+
+  .names { display: flex; gap: 8px; margin-top: 10px; flex: none; }
+  .names input {
+    flex: 1; min-width: 0; padding: 8px 0; text-align: center; border: 0; outline: 0; border-radius: 10px;
+    background: #141414; color: #fff; font: 600 15px ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-transform: uppercase; -webkit-user-select: text; user-select: text;
+  }
+  .names input::placeholder { color: #555; }
+
+  .status { margin-top: 16px; min-height: 84px; text-align: center; flex: none; }
+  .status .title { font-size: 22px; font-weight: 700; line-height: 1.25; white-space: pre-line; }
+  .status .sub { margin-top: 4px; font-size: 15px; color: #999; min-height: 18px; }
+
+  .stage { flex: 1; min-height: 0; position: relative; touch-action: none; }
+  .spinner { position: absolute; inset: 0; display: none; }
+  .spinner.on { display: block; }
+
+  /* Dé 3D */
+  .dice { perspective: 900px; display: none; align-items: center; justify-content: center; }
+  .dice.on { display: flex; }
+  .float { animation: float 3.2s ease-in-out infinite; transform-style: preserve-3d; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+  .hop, .tilt, .cube { transform-style: preserve-3d; }
+  .cube { position: relative; width: var(--s); height: var(--s); }
+  .face {
+    position: absolute; inset: 0; border-radius: 11%; padding: 9%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    font-weight: 800; color: #fff; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.22), inset 0 -12px 30px rgba(0,0,0,.3);
+  }
+  .face .lab { font-size: calc(var(--s) * .25); letter-spacing: .5px; }
+  .face.regul .lab { font-size: calc(var(--s) * .215); }
+  .face.joke { background: linear-gradient(145deg, #292933, #131317); }
+  .face.joke .emo { font-size: calc(var(--s) * .22); line-height: 1.1; }
+  .face.joke .lab { font-size: calc(var(--s) * .105); line-height: 1.2; font-weight: 700; margin-top: 6%; }
+  .face .tag { margin-top: 5%; font-size: calc(var(--s) * .085); font-weight: 600; opacity: .85; }
+  .face.grey { background: linear-gradient(145deg, #3a3a3a, #1f1f1f) !important; }
+  .face.grey .lab { text-decoration: line-through; opacity: .45; }
+  .face.hit { box-shadow: inset 0 0 0 5px #fff, inset 0 -12px 30px rgba(0,0,0,.3); }
+  .f0 { transform: translateZ(calc(var(--s) / 2)); }
+  .f1 { transform: rotateY(90deg) translateZ(calc(var(--s) / 2)); }
+  .f2 { transform: rotateY(180deg) translateZ(calc(var(--s) / 2)); }
+  .f3 { transform: rotateY(-90deg) translateZ(calc(var(--s) / 2)); }
+  .f4 { transform: rotateX(90deg) translateZ(calc(var(--s) / 2)); }
+  .f5 { transform: rotateX(-90deg) translateZ(calc(var(--s) / 2)); }
+
+  /* Roulettes */
+  .wheel canvas, .wheel .needle, .wheel .ball { position: absolute; left: 0; top: 0; }
+  .wheel .needle {
+    background: #fafafa; clip-path: polygon(0 0, 100% 0, 50% 100%); transform-origin: 50% 0;
+    filter: drop-shadow(0 4px 5px rgba(0,0,0,.7));
+  }
+  .wheel .ball {
+    border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #b8b8b8);
+    box-shadow: 0 2px 3px rgba(0,0,0,.6);
+  }
+
+  .modes { display: flex; gap: 10px; padding: 10px 0; flex: none; }
+  .mode { flex: 1; height: 44px; border-radius: 12px; background: #141414; font-size: 15px; font-weight: 600; opacity: .55; border: 1.5px solid transparent; }
+  .mode.on { background: #383838; opacity: 1; border-color: rgba(255,255,255,.6); }
+
+  .results { display: flex; gap: 8px; flex: none; }
+  .res { flex: 1; padding: 8px 0; border-radius: 12px; background: #141414; text-align: center; transition: background .3s; }
+  .res .who { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.6); }
+  .res .what { margin-top: 3px; font-size: 17px; font-weight: 800; color: #595959; }
+  .res.set .what { color: #fff; }
+  .res.set .who { color: rgba(255,255,255,.85); }
+
+  .replay { margin-top: 12px; padding: 16px; border-radius: 14px; background: #fff; color: #000; font-size: 17px; font-weight: 700; flex: none; }
+  .replay:active { transform: scale(.98); }
+</style>
+</head>
+<body>
+  <div class="tabs">
+    <button class="tab" data-shift="matin">☀️ Matin</button>
+    <button class="tab" data-shift="aprem">🌇 Après-midi</button>
+  </div>
+  <div class="night" id="night">🌙 COA de nuit : PCR + Régul. Bon courage !</div>
+  <div class="names" id="names"></div>
+
+  <div class="status">
+    <div class="title" id="title"></div>
+    <div class="sub" id="sub"></div>
+  </div>
+
+  <div class="stage" id="stage"></div>
+
+  <div class="modes">
+    <button class="mode" data-mode="dice">🎲 Dé</button>
+    <button class="mode" data-mode="wheel">🎡 Roue</button>
+    <button class="mode" data-mode="ball">🎰 Casino</button>
+  </div>
+  <div class="results" id="results"></div>
+  <button class="replay" id="replay">↺ Rejouer</button>
+
+<script src="app.js"></script>
+</body>
+</html>
